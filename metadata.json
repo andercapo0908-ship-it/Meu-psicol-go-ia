@@ -1,0 +1,6 @@
+{
+  "name": "Meu Psicólogo Pessoal",
+  "description": "Seu assistente emocional inteligente para apoio psicológico, técnicas terapêuticas, diário emocional e autocuidado.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
