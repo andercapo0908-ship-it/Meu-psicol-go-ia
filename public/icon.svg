@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <!-- Gradiente de fundo super moderno -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366f1" />
+      <stop offset="100%" stop-color="#4f46e5" />
+    </linearGradient>
+    <!-- Gradiente para o desenho interno de brilho -->
+    <linearGradient id="glowGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#a78bfa" stop-opacity="0.8" />
+      <stop offset="100%" stop-color="#818cf8" stop-opacity="0.2" />
+    </linearGradient>
+  </defs>
+
+  <!-- Fundo Arredondado com Drop Shadow sutil -->
+  <rect width="512" height="512" rx="128" fill="url(#bgGrad)" />
+
+  <!-- Círculo interno decorativo com brilho -->
+  <circle cx="256" cy="256" r="180" fill="url(#glowGrad)" opacity="0.3" stroke="#ffffff" stroke-width="2" stroke-dasharray="8 8" />
+
+  <!-- Elemento Principal: Ícone de Cérebro/Coração Combinados com Estrela de Resiliência -->
+  <g transform="translate(128, 128) scale(1)">
+    <!-- Aura de luz central -->
+    <circle cx="128" cy="128" r="90" fill="#ffffff" opacity="0.1" filter="blur(20px)" />
+
+    <!-- Desenho do Cérebro Emocional Vetorial -->
+    <!-- Lado Esquerdo (Razão / TCC) -->
+    <path d="M124 60 C80 60, 50 90, 50 130 C50 160, 70 175, 85 185 C95 192, 110 190, 124 195 Z" fill="#ffffff" opacity="0.95" />
+    <!-- Lado Direito (Sensibilidade / Coração) -->
+    <path d="M132 60 C176 60, 206 90, 206 130 C206 160, 186 175, 171 185 C161 192, 146 190, 132 195 Z" fill="#ffffff" />
+    
+    <!-- Divisão Terapêutica central iluminada -->
+    <line x1="128" y1="60" x2="128" y2="200" stroke="#4f46e5" stroke-width="4" stroke-linecap="round" />
+
+    <!-- Estrela da Esperança e Suplementação Cognitiva (Sparkle) -->
+    <path d="M128 35 L133 48 L146 48 L136 56 L140 68 L128 60 L116 68 L120 56 L110 48 L123 48 Z" fill="#facc15" />
+    
+    <!-- Detalhes Sinápticos Elegantes -->
+    <circle cx="90" cy="100" r="6" fill="#4f46e5" />
+    <circle cx="166" cy="100" r="6" fill="#6366f1" />
+    <circle cx="85" cy="140" r="8" fill="#a78bfa" />
+    <circle cx="171" cy="140" r="8" fill="#ec4899" />
+    <circle cx="128" cy="110" r="5" fill="#facc15" />
+
+    <!-- Curvas que imitam os sulcos do cérebro com elegância -->
+    <path d="M85 100 Q105 110 110 130" stroke="#fafafa" stroke-width="3" stroke-linecap="round" fill="none" opacity="0.4" />
+    <path d="M171 100 Q151 110 146 130" stroke="#fafafa" stroke-width="3" stroke-linecap="round" fill="none" opacity="0.4" />
+    <path d="M90 150 Q110 160 115 175" stroke="#fafafa" stroke-width="3" stroke-linecap="round" fill="none" opacity="0.4" />
+    <path d="M166 150 Q146 160 141 175" stroke="#fafafa" stroke-width="3" stroke-linecap="round" fill="none" opacity="0.4" />
+  </g>
+</svg>

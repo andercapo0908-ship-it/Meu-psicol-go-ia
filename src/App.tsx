@@ -86,6 +86,69 @@ export default function App() {
   // Alerta de Notificação Temporário
   const [notification, setNotification] = useState<string | null>(null);
 
+  // Estados estratégicos para gerenciamento do PWA (Instalação Nativa / Substituição Real de APK)
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isInstallAvailable, setIsInstallAvailable] = useState(false);
+  const [showPwaModal, setShowPwaModal] = useState(false);
+  const [isInstalledApp, setIsInstalledApp] = useState(false);
+  const [pwaTutorialTab, setPwaTutorialTab] = useState<'android' | 'ios' | 'desktop'>('android');
+
+  useEffect(() => {
+    // Detectar se já está rodando como PWA instalado (Standalone)
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
+                          (window.navigator as any).standalone === true ||
+                          document.referrer.includes('android-app://');
+    if (isStandalone) {
+      setIsInstalledApp(true);
+    }
+
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setIsInstallAvailable(true);
+    };
+
+    const handleAppInstalled = () => {
+      console.log('[PWA] Aplicativo instalado com sucesso pelo usuário!');
+      setIsInstalledApp(true);
+      setIsInstallAvailable(false);
+      setDeferredPrompt(null);
+      setNotification("🎉 Excelente! O aplicativo foi instalado na tela de início do seu celular com sucesso!");
+      setTimeout(() => setNotification(null), 5000);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('appinstalled', handleAppInstalled);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+    };
+  }, []);
+
+  const handleInstallApp = async () => {
+    if (!deferredPrompt) {
+      // Se não há o prompt nativo (por exemplo, no Safari iOS ou navegadores específicos), abrir o guia didático detalhado
+      setShowPwaModal(true);
+      return;
+    }
+    try {
+      deferredPrompt.prompt();
+      const choiceResult = await deferredPrompt.userChoice;
+      if (choiceResult.outcome === 'accepted') {
+        console.log('[PWA] Usuário aceitou a instalação.');
+        setIsInstalledApp(true);
+        setIsInstallAvailable(false);
+        setDeferredPrompt(null);
+      } else {
+        console.log('[PWA] Usuário descartou a instalação.');
+      }
+    } catch (err) {
+      console.error('[PWA] Falha ao disparar motor de instalação:', err);
+      setShowPwaModal(true);
+    }
+  };
+
   useEffect(() => {
     if (profile) {
       localStorage.setItem("user_profile", JSON.stringify(profile));
@@ -353,6 +416,19 @@ export default function App() {
               <span>Offline Ativo</span>
             </span>
 
+            {/* Botão de Instalação PWA rápido se não estiver instalado */}
+            {!isInstalledApp && (
+              <button
+                onClick={handleInstallApp}
+                className="flex items-center gap-1 bg-brand-100 hover:bg-brand-250 hover:scale-103 text-brand-700 rounded-full px-2.5 py-1 text-[10px] font-bold cursor-pointer transition-all shadow-3xs"
+                title="Instalar aplicativo de forma oficial na Tela de Início"
+              >
+                <Smartphone className="w-3.5 h-3.5 text-brand-600 animate-bounce" />
+                <span className="hidden sm:inline">Baixar App</span>
+                <span className="inline sm:hidden">Baixar</span>
+              </button>
+            )}
+
             {/* Logout sutil */}
             <button
               onClick={() => {
@@ -401,6 +477,42 @@ export default function App() {
                     <span>Conversar Agora</span>
                     <Brain className="w-4 h-4 text-brand-500" />
                   </button>
+                </div>
+
+                {/* Bloco de Instalação PWA Ativo (Visual e instalador alternativo de APK) */}
+                <div className="p-4 bg-gradient-to-r from-indigo-50 via-white to-purple-50/70 border border-indigo-100 rounded-3xl shadow-3xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4 relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/5 rounded-full blur-xl pointer-events-none" />
+                  
+                  <div className="flex items-start gap-3.5 relative z-10">
+                    <div className="w-10 h-10 rounded-2xl bg-indigo-600/10 border border-indigo-150 text-indigo-700 flex items-center justify-center font-bold text-lg select-none shrink-0">
+                      📲
+                    </div>
+                    <div>
+                      <h3 className="font-display font-extrabold text-xs text-slate-800 leading-tight flex items-center gap-2">
+                        <span>Instalar como Aplicativo Nativo</span>
+                        <span className="text-[8px] bg-indigo-600 text-white px-1.5 py-0.5 rounded-full font-sans uppercase font-black tracking-widest animate-pulse">Recomendado</span>
+                      </h3>
+                      <p className="text-slate-500 text-[11px] leading-relaxed mt-0.5 max-w-lg">
+                        Adicione o aplicativo diretamente à tela inicial do seu celular. Ele roda em janela cheia isolada (standalone), sem barra de endereço, consome pouca bateria e suporta consultas offline completas!
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 w-full md:w-auto shrink-0 justify-end relative z-10">
+                    <button
+                      onClick={() => setShowPwaModal(true)}
+                      className="text-[10px] font-bold text-slate-500 hover:text-slate-700 hover:bg-slate-100 px-3 py-2 rounded-xl cursor-pointer transition-all text-center"
+                    >
+                      Dúvidas?
+                    </button>
+                    <button
+                      onClick={handleInstallApp}
+                      className="bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-[10px] py-2 px-3.5 rounded-xl cursor-pointer shadow-3xs hover:scale-102 transition-all flex items-center gap-1.5 text-center"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      Instalar Aplicativo
+                    </button>
+                  </div>
                 </div>
 
                 {/* Grid Interativa: Humores + Práticas de Hábitos */}
@@ -908,6 +1020,41 @@ export default function App() {
                     </div>
                   </div>
 
+                  {/* Configurações PWA/APK do Dispositivo */}
+                  <div className="space-y-4 pt-4 border-t border-slate-50">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-display font-bold text-sm text-slate-800">Aplicativo Oficial & Instalação Direta</h3>
+                      <span className="text-[9px] bg-indigo-50 text-indigo-600 px-2.5 py-0.5 rounded font-black font-sans uppercase">Substituto Real do APK</span>
+                    </div>
+
+                    <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl space-y-3">
+                      <p className="text-[11px] text-slate-500 leading-relaxed">
+                        Em vez de instalar pacotes instáveis de repositórios não oficiais (.apk manual), nosso aplicativo suporta a tecnologia de **Progressive Web App (PWA)** de alta performance. 
+                        Ela gera um aplicativo real no seu celular que inicia instantaneamente, roda em tela cheia isolado do navegador, consome 90% menos bateria/armazenamento que um APK clássico e atualiza automaticamente em segundo plano.
+                      </p>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pt-1">
+                        <button
+                          type="button"
+                          onClick={handleInstallApp}
+                          className="flex items-center justify-center gap-2 py-2.5 bg-indigo-600 hover:bg-indigo-700 hover:scale-101 text-white rounded-xl text-xs font-bold cursor-pointer transition-all shadow-3xs"
+                        >
+                          <Smartphone className="w-4 h-4 text-indigo-200" />
+                          Instalar Aplicativo Oficial
+                        </button>
+                        
+                        <button
+                          type="button"
+                          onClick={() => setShowPwaModal(true)}
+                          className="flex items-center justify-center gap-2 py-2.5 bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 rounded-xl text-xs font-bold cursor-pointer transition-all"
+                        >
+                          <BookOpen className="w-4 h-4 text-slate-400" />
+                          Ver Manual de Instalação
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
                   {/* Escolha do Tema sutil */}
                   <div className="space-y-2.5 pt-4 border-t border-slate-50">
                     <label className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">Visual e Configuração Estética Geral do Tema</label>
@@ -974,6 +1121,185 @@ export default function App() {
             );
           })}
         </footer>
+
+        {/* Modal de Tutorial de Instalação PWA Real (Substituto de APK) */}
+        <AnimatePresence>
+          {showPwaModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              {/* Backdrop */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setShowPwaModal(false)}
+                className="absolute inset-0 bg-slate-900/60 backdrop-blur-xs cursor-pointer"
+              />
+
+              {/* Card de Conteúdo do Modal */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 15 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 15 }}
+                transition={{ duration: 0.25 }}
+                className="bg-white rounded-3xl overflow-hidden shadow-2xl border border-slate-100 max-w-md w-full relative z-10 flex flex-col justify-between font-sans text-left"
+              >
+                {/* Top header do Modal */}
+                <div className="bg-indigo-600 p-5 text-white flex items-center gap-3.5 relative overflow-hidden shrink-0">
+                  <div className="absolute -right-6 -top-6 w-20 h-20 bg-white/10 rounded-full blur-xl" />
+                  <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center text-xl shrink-0">
+                    📲
+                  </div>
+                  <div>
+                    <h3 className="font-display font-extrabold text-sm tracking-tight">Central de Instalação e Suporte</h3>
+                    <p className="text-indigo-100 text-[10px] uppercase font-bold tracking-widest mt-0.5">Transforme em App Nativo</p>
+                  </div>
+                  <button 
+                    onClick={() => setShowPwaModal(false)}
+                    className="absolute top-4 right-4 text-white/70 hover:text-white hover:bg-white/10 rounded-lg p-1.5 transition-all text-xs font-bold leading-none cursor-pointer"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                {/* Conteúdo Informativo */}
+                <div className="p-5 flex-1 space-y-4 max-h-[480px] overflow-y-auto">
+                  <div className="space-y-1">
+                    <h4 className="font-display font-bold text-xs text-slate-800">Sua Experiência APK Segura e Moderna</h4>
+                    <p className="text-slate-400 text-[11px] leading-relaxed">
+                      Nossa plataforma implementa a tecnologia oficial **PWA (Progressive Web App)** aprovada pelo Google e Apple. Ao instalar este aplicativo, seu celular cria um contêiner nativo independente na sua tela de apps, removendo o navegador e liberando acesso offline!
+                    </p>
+                  </div>
+
+                  {/* Seletor de Abas de Tutorial */}
+                  <div className="grid grid-cols-3 bg-slate-100 p-1 rounded-xl text-[10px] font-extrabold text-slate-500 text-center">
+                    <button
+                      onClick={() => setPwaTutorialTab('android')}
+                      className={`py-1.5 rounded-lg transition-all cursor-pointer ${pwaTutorialTab === 'android' ? 'bg-white text-indigo-600 shadow-3xs' : 'hover:text-slate-700'}`}
+                    >
+                      🤖 Android
+                    </button>
+                    <button
+                      onClick={() => setPwaTutorialTab('ios')}
+                      className={`py-1.5 rounded-lg transition-all cursor-pointer ${pwaTutorialTab === 'ios' ? 'bg-white text-indigo-600 shadow-3xs' : 'hover:text-slate-700'}`}
+                    >
+                      🍎 iPhone (iOS)
+                    </button>
+                    <button
+                      onClick={() => setPwaTutorialTab('desktop')}
+                      className={`py-1.5 rounded-lg transition-all cursor-pointer ${pwaTutorialTab === 'desktop' ? 'bg-white text-indigo-600 shadow-3xs' : 'hover:text-slate-700'}`}
+                    >
+                      💻 Computador
+                    </button>
+                  </div>
+
+                  {/* Detalhes de Passo a Passo por Aba */}
+                  <div className="bg-slate-50 border border-slate-100 p-4 rounded-2xl min-h-[180px] flex flex-col justify-center">
+                    {pwaTutorialTab === 'android' && (
+                      <div className="space-y-2.5">
+                        <h5 className="text-[11px] font-extrabold text-slate-700 uppercase tracking-wide">Passo a Passo no Android (Chrome)</h5>
+                        <ol className="space-y-1.5 text-[11px] text-slate-500 font-medium">
+                          <li className="flex items-start gap-1.5">
+                            <span className="text-indigo-600 font-bold shrink-0">1.</span>
+                            <span>Clique no botão azul <strong>"Instalar Aplicativo"</strong> no topo da página do painel ou no botão abaixo.</span>
+                          </li>
+                          <li className="flex items-start gap-1.5">
+                            <span className="text-indigo-600 font-bold shrink-0">2.</span>
+                            <span>Se o botão não disparar, clique nos <strong>três pontos verticais (⋮)</strong> no canto superior direito do Google Chrome.</span>
+                          </li>
+                          <li className="flex items-start gap-1.5">
+                            <span className="text-indigo-600 font-bold shrink-0">3.</span>
+                            <span>Selecione a opção <strong>"Adicionar à tela inicial"</strong> ou <strong>"Instalar aplicativo"</strong>.</span>
+                          </li>
+                          <li className="flex items-start gap-1.5">
+                            <span className="text-indigo-600 font-bold shrink-0">4.</span>
+                            <span>Confirme clicando em <strong>"Instalar"</strong>. Um ícone lindo será gerado na sua tela inicial!</span>
+                          </li>
+                        </ol>
+                      </div>
+                    )}
+
+                    {pwaTutorialTab === 'ios' && (
+                      <div className="space-y-2.5">
+                        <h5 className="text-[11px] font-extrabold text-slate-700 uppercase tracking-wide">Passo a Passo no iPhone (Safari)</h5>
+                        <ol className="space-y-1.5 text-[11px] text-slate-500 font-medium">
+                          <li className="flex items-start gap-1.5">
+                            <span className="text-indigo-600 font-bold shrink-0">1.</span>
+                            <span>Certifique-se de que você abriu este link utilizando o navegador padrão **Safari**.</span>
+                          </li>
+                          <li className="flex items-start gap-1.5">
+                            <span className="text-indigo-600 font-bold shrink-0">2.</span>
+                            <span>Clique no botão de <strong>Compartilhar</strong> (ícone de um quadrado com uma seta apontando para cima) no painel inferior do navegador.</span>
+                          </li>
+                          <li className="flex items-start gap-1.5">
+                            <span className="text-indigo-600 font-bold shrink-0">3.</span>
+                            <span>Role as opções para baixo e clique em <strong>"Adicionar à Tela de Início"</strong>.</span>
+                          </li>
+                          <li className="flex items-start gap-1.5">
+                            <span className="text-indigo-600 font-bold shrink-0">4.</span>
+                            <span>Clique no botão <strong>"Adicionar"</strong> no canto superior. Pronto! O app agirá igual ao aplicativo nativo.</span>
+                          </li>
+                        </ol>
+                      </div>
+                    )}
+
+                    {pwaTutorialTab === 'desktop' && (
+                      <div className="space-y-2.5">
+                        <h5 className="text-[11px] font-extrabold text-slate-700 uppercase tracking-wide">Passo a Passo no Computador (Chrome/Edge)</h5>
+                        <ol className="space-y-1.5 text-[11px] text-slate-500 font-medium">
+                          <li className="flex items-start gap-1.5">
+                            <span className="text-indigo-600 font-bold shrink-0">1.</span>
+                            <span>Na barra de endereços do Chrome ou Edge, repare no ícone de <strong>um computador com um celular (Instalar)</strong> no lado direito do campo de link.</span>
+                          </li>
+                          <li className="flex items-start gap-1.5">
+                            <span className="text-indigo-600 font-bold shrink-0">2.</span>
+                            <span>Ou clique no botão <strong>"Instalar Aplicativo Oficial"</strong> no painel de configurações deste app.</span>
+                          </li>
+                          <li className="flex items-start gap-1.5">
+                            <span className="text-indigo-600 font-bold shrink-0">3.</span>
+                            <span>Selecione <strong>"Instalar"</strong>. O app abrirá em uma janela limpa, otimizada e ultra fluida com suporte a atalhos.</span>
+                          </li>
+                        </ol>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Benefícios visíveis */}
+                  <div className="grid grid-cols-2 gap-2 text-[10px] text-slate-500 font-semibold pt-1">
+                    <div className="flex items-center gap-1.5 p-2 bg-slate-50 rounded-xl border border-slate-100">
+                      <span>✓</span> <span>Sem Anúncios e Rápido</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 p-2 bg-slate-50 rounded-xl border border-slate-100">
+                      <span>✓</span> <span>Ícone na Tela Inicial</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 p-2 bg-slate-50 rounded-xl border border-slate-100">
+                      <span>✓</span> <span>Suporta Uso Offline</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 p-2 bg-slate-50 rounded-xl border border-slate-100">
+                      <span>✓</span> <span>Leve e Seguro</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Footer do Modal */}
+                <div className="p-4 border-t border-slate-50 bg-slate-50 flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={handleInstallApp}
+                    className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-[11px] py-2.5 rounded-xl cursor-pointer transition-colors shadow-3xs flex items-center justify-center gap-1.5"
+                  >
+                    <Smartphone className="w-4 h-4 text-indigo-400" />
+                    <span>Tentar Instalar de Forma Rápida</span>
+                  </button>
+                  <button
+                    onClick={() => setShowPwaModal(false)}
+                    className="px-4 py-2.5 bg-white border border-slate-200 text-slate-600 hover:text-slate-800 text-[11px] font-extrabold rounded-xl cursor-pointer transition-colors"
+                  >
+                    Entendi!
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
 
       </div>
     </div>
